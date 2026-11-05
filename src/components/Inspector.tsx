@@ -1,5 +1,6 @@
 import type { BotEdge, BotNode, LinkKind } from '../types'
 import { LINK_KINDS } from '../types'
+import { Icon, type IconName } from './Icons'
 
 type InspectorProps = {
   selectedBot: BotNode | null
@@ -8,6 +9,12 @@ type InspectorProps = {
   onUpdateEdge: (id: string, patch: { kind?: LinkKind; label?: string }) => void
   onDeleteBot: (id: string) => void
   onDeleteEdge: (id: string) => void
+}
+
+const KIND_META: Record<LinkKind, { icon: IconName; label: string }> = {
+  next: { icon: 'next', label: 'sequence' },
+  loop: { icon: 'loop', label: 'retry / re-entry' },
+  shared: { icon: 'shared', label: 'common path' },
 }
 
 export function Inspector({
@@ -21,6 +28,17 @@ export function Inspector({
   if (!selectedBot && !selectedEdge) {
     return (
       <aside className="inspector inspector--empty">
+        <div className="inspector__empty-art" aria-hidden>
+          <span className="inspector__empty-orb">
+            <Icon name="bot" size={28} />
+          </span>
+          <span className="inspector__empty-orb inspector__empty-orb--delay">
+            <Icon name="link" size={22} />
+          </span>
+          <span className="inspector__empty-orb inspector__empty-orb--delay2">
+            <Icon name="extract" size={20} />
+          </span>
+        </div>
         <p className="inspector__hint">
           Select a bot to define its function and routine, or a link for next / loop / shared
           arrows. When ready, use <strong>Extract skill</strong> for MD, JSON, TXT, or a full pack.
@@ -36,25 +54,33 @@ export function Inspector({
     return (
       <aside className="inspector">
         <div className="inspector__header">
-          <h2>Link</h2>
-          <button type="button" className="btn btn--ghost btn--sm" onClick={() => onDeleteEdge(selectedEdge.id)}>
+          <h2>
+            <Icon name="link" size={18} />
+            Link
+          </h2>
+          <button
+            type="button"
+            className="btn btn--ghost btn--sm"
+            onClick={() => onDeleteEdge(selectedEdge.id)}
+          >
+            <Icon name="delete" size={14} />
             Delete
           </button>
         </div>
 
-        <label className="field">
-          <span>Kind</span>
-          <select
-            value={kind}
-            onChange={(e) => onUpdateEdge(selectedEdge.id, { kind: e.target.value as LinkKind })}
-          >
-            {LINK_KINDS.map((k) => (
-              <option key={k} value={k}>
-                {k}
-              </option>
-            ))}
-          </select>
-        </label>
+        <div className="kind-pills" role="group" aria-label="Link kind">
+          {LINK_KINDS.map((k) => (
+            <button
+              key={k}
+              type="button"
+              className={`kind-pill kind-pill--${k}${kind === k ? ' is-active' : ''}`}
+              onClick={() => onUpdateEdge(selectedEdge.id, { kind: k })}
+            >
+              <Icon name={KIND_META[k].icon} size={15} />
+              {k}
+            </button>
+          ))}
+        </div>
 
         <label className="field">
           <span>Label</span>
@@ -69,15 +95,12 @@ export function Inspector({
           {selectedEdge.source} → {selectedEdge.target}
         </p>
         <ul className="legend">
-          <li>
-            <span className="legend__swatch legend__swatch--next" /> next — sequence
-          </li>
-          <li>
-            <span className="legend__swatch legend__swatch--loop" /> loop — retry / re-entry
-          </li>
-          <li>
-            <span className="legend__swatch legend__swatch--shared" /> shared — common path
-          </li>
+          {LINK_KINDS.map((k) => (
+            <li key={k}>
+              <Icon name={KIND_META[k].icon} size={14} className={`legend__icon legend__icon--${k}`} />
+              {k} — {KIND_META[k].label}
+            </li>
+          ))}
         </ul>
       </aside>
     )
@@ -90,8 +113,18 @@ export function Inspector({
   return (
     <aside className="inspector">
       <div className="inspector__header">
-        <h2>Bot</h2>
-        <button type="button" className="btn btn--ghost btn--sm" onClick={() => onDeleteBot(selectedBot.id)}>
+        <h2>
+          <span className="inspector__title-avatar" aria-hidden>
+            <Icon name="bot" size={16} />
+          </span>
+          Bot
+        </h2>
+        <button
+          type="button"
+          className="btn btn--ghost btn--sm"
+          onClick={() => onDeleteBot(selectedBot.id)}
+        >
+          <Icon name="delete" size={14} />
           Delete
         </button>
       </div>
@@ -106,7 +139,9 @@ export function Inspector({
       </label>
 
       <label className="field">
-        <span>Function</span>
+        <span>
+          <Icon name="function" size={12} /> Function
+        </span>
         <textarea
           value={selectedBot.data.function}
           onChange={(e) => onUpdateBot(selectedBot.id, { function: e.target.value })}
@@ -117,7 +152,9 @@ export function Inspector({
 
       <div className="field">
         <div className="field__row">
-          <span>Routine</span>
+          <span>
+            <Icon name="steps" size={12} /> Routine
+          </span>
           <button
             type="button"
             className="btn btn--ghost btn--sm"
@@ -127,6 +164,7 @@ export function Inspector({
               })
             }
           >
+            <Icon name="add" size={13} />
             Add step
           </button>
         </div>
@@ -156,7 +194,7 @@ export function Inspector({
                     onUpdateBot(selectedBot.id, { routine: next })
                   }}
                 >
-                  ↑
+                  <Icon name="up" size={14} />
                 </button>
                 <button
                   type="button"
@@ -170,20 +208,19 @@ export function Inspector({
                     onUpdateBot(selectedBot.id, { routine: next })
                   }}
                 >
-                  ↓
+                  <Icon name="down" size={14} />
                 </button>
                 <button
                   type="button"
                   className="icon-btn"
                   aria-label="Remove step"
                   onClick={() => {
-                    onUpdateBot(
-                      selectedBot.id,
-                      { routine: routine.filter((_, i) => i !== index) },
-                    )
+                    onUpdateBot(selectedBot.id, {
+                      routine: routine.filter((_, i) => i !== index),
+                    })
                   }}
                 >
-                  ×
+                  <Icon name="close" size={14} />
                 </button>
               </div>
             </li>

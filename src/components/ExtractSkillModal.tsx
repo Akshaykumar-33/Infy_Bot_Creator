@@ -1,5 +1,6 @@
 import { useEffect, useId, useState } from 'react'
 import type { SkillFormat } from '../lib/skill'
+import { Icon, type IconName } from './Icons'
 
 type ExtractSkillModalProps = {
   open: boolean
@@ -8,26 +9,35 @@ type ExtractSkillModalProps = {
   onExtract: (formats: SkillFormat[]) => void
 }
 
-const OPTIONS: { id: SkillFormat; title: string; detail: string }[] = [
+const OPTIONS: {
+  id: SkillFormat
+  title: string
+  detail: string
+  icon: IconName
+}[] = [
   {
     id: 'md',
     title: 'SKILL.md',
     detail: 'Cursor-style skill with frontmatter + execution guide',
+    icon: 'md',
   },
   {
     id: 'json',
     title: 'skill.json',
     detail: 'Structured skill payload for agents and tooling',
+    icon: 'json',
   },
   {
     id: 'txt',
     title: 'skill.txt',
     detail: 'Plain-text brief you can paste into a prompt',
+    icon: 'txt',
   },
   {
     id: 'pack',
     title: 'Full pack',
     detail: 'MD + JSON + TXT plus a single skill-pack.json bundle',
+    icon: 'pack',
   },
 ]
 
@@ -73,11 +83,14 @@ export function ExtractSkillModal({
         <div className="modal__glow" aria-hidden />
         <header className="modal__header">
           <div>
-            <p className="modal__eyebrow">Extract skill</p>
+            <p className="modal__eyebrow">
+              <Icon name="extract" size={14} />
+              Extract skill
+            </p>
             <h2 id={titleId}>{workflowName || 'Untitled workflow'}</h2>
           </div>
           <button type="button" className="icon-btn modal__close" onClick={onClose} aria-label="Close">
-            ×
+            <Icon name="close" size={18} />
           </button>
         </header>
 
@@ -97,6 +110,9 @@ export function ExtractSkillModal({
                     checked={checked}
                     onChange={() => toggle(opt.id)}
                   />
+                  <span className={`extract-option__icon extract-option__icon--${opt.id}`} aria-hidden>
+                    <Icon name={opt.icon} size={20} />
+                  </span>
                   <span className="extract-option__body">
                     <span className="extract-option__title">{opt.title}</span>
                     <span className="extract-option__detail">{opt.detail}</span>
@@ -117,6 +133,7 @@ export function ExtractSkillModal({
             disabled={selected.length === 0}
             onClick={() => onExtract(selected)}
           >
+            <Icon name="download" size={16} />
             Download {selected.length || 0} file{selected.length === 1 ? '' : 's'}
           </button>
         </footer>

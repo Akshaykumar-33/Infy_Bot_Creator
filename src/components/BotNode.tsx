@@ -1,5 +1,6 @@
 import { Handle, Position, type NodeProps } from '@xyflow/react'
 import type { BotNode as BotNodeType } from '../types'
+import { Icon } from './Icons'
 
 export function BotNode({ data, selected }: NodeProps<BotNodeType>) {
   const steps = data.routine ?? []
@@ -18,11 +19,20 @@ export function BotNode({ data, selected }: NodeProps<BotNodeType>) {
       <Handle type="target" position={Position.Left} id="in-left" className="bot-handle" />
 
       <div className="bot-node__top">
-        <span className="bot-node__eyebrow">Bot</span>
-        <span className="bot-node__chip">{steps.length} step{steps.length === 1 ? '' : 's'}</span>
+        <span className="bot-node__badge">
+          <span className="bot-node__avatar" aria-hidden>
+            <Icon name="bot" size={16} />
+          </span>
+          <span className="bot-node__eyebrow">Bot</span>
+        </span>
+        <span className="bot-node__chip">
+          <Icon name="steps" size={12} />
+          {steps.length}
+        </span>
       </div>
       <div className="bot-node__name">{data.name || 'Untitled bot'}</div>
       <p className="bot-node__function">
+        <Icon name="function" size={13} className="bot-node__inline-icon" />
         {hasFunction ? data.function : 'Define this bot’s function'}
       </p>
 
@@ -37,7 +47,10 @@ export function BotNode({ data, selected }: NodeProps<BotNodeType>) {
           {steps.length > 3 && <li className="bot-node__more">+{steps.length - 3} more</li>}
         </ol>
       ) : (
-        <div className="bot-node__meta">No routine yet — add steps in the inspector</div>
+        <div className="bot-node__meta">
+          <Icon name="steps" size={13} />
+          No routine yet — add steps in the inspector
+        </div>
       )}
 
       <Handle type="source" position={Position.Right} id="out-right" className="bot-handle" />
