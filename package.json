@@ -1,0 +1,20 @@
+{
+  "name": "Infy_bot",
+  "private": true,
+  "type": "module",
+  "description": "Infy_bot: Grok orchestrator routing to Email, Teams, and Calendar specialist bots",
+  "scripts": {
+    "check": "tsc --noEmit",
+    "dev": "agent-sdk dev",
+    "validate": "agent-sdk validate --dir .",
+    "info": "agent-sdk info --dir . --json"
+  },
+  "dependencies": {
+    "@grok/agent-sdk": "^0.6.0",
+    "zod": "^4.6.5"
+  },
+  "devDependencies": {
+    "@types/node": "^22.14.0",
+    "typescript": "6.0.3"
+  }
+}
