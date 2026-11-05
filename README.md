@@ -1,6 +1,6 @@
 # BOT WORKFLOW DESIGNER
 
-Lightweight local web app to **visualize bots**, define each bot’s **function** and **routine**, **link** bots with **next / loop / shared** arrows, and **extract** the graph as a Cursor **skill** (`SKILL.md`).
+Lightweight local web app to **visualize bots**, define each bot’s **function** and **routine**, **link** bots with **next / loop / shared** arrows, and **extract** the graph as skill files (`SKILL.md`, JSON, TXT, or a full pack).
 
 ## Run locally
 
@@ -24,7 +24,11 @@ npm run preview
 2. **Select a bot** — set name, function, and ordered routine steps
 3. **Drag handles** — link bots (`next` by default; side handles for sequence, top/bottom for loops)
 4. **Select a link** — change kind to `loop` or `shared`, add a label
-5. **Extract skill** — download `SKILL.md` encoding the whole network for an agent
+5. **Extract skill** — choose formats and download:
+   - `SKILL.md` — Cursor-style skill with YAML frontmatter
+   - `*.skill.json` — structured skill payload for agents/tooling
+   - `*.skill.txt` — plain-text brief for prompts
+   - **Full pack** — MD + JSON + TXT plus a `*.skill-pack.json` bundle
 6. **Export / Import** — workflow JSON round-trip; auto-saves to `localStorage`
 
 ## Link kinds
@@ -34,16 +38,5 @@ npm run preview
 | `next` | solid | Normal sequence |
 | `loop` | dashed + animated | Retry / re-entry |
 | `shared` | dotted | Escalation / common path |
-
-## Skill output
-
-**Extract skill** writes a Cursor-style `SKILL.md` with:
-
-- YAML frontmatter (`name`, `description`)
-- Topology summary and execution guide
-- Per-bot function, routine, incoming/outgoing links
-- Embedded workflow JSON
-
-Drop the file into an agent skills folder (e.g. `.cursor/skills/<name>/SKILL.md`) to reuse the designed workflow.
 
 No backend required — pure frontend.

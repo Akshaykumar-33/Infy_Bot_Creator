@@ -9,9 +9,10 @@ import {
 } from '@xyflow/react'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Canvas } from './components/Canvas'
+import { ExtractSkillModal } from './components/ExtractSkillModal'
 import { Inspector } from './components/Inspector'
 import { Toolbar } from './components/Toolbar'
-import { downloadSkill } from './lib/skill'
+import { downloadSkillFormats, type SkillFormat } from './lib/skill'
 import {
   downloadWorkflow,
   edgeStyleForKind,
@@ -44,6 +45,7 @@ export default function App() {
   const [edges, setEdges] = useState<BotEdge[]>(initial.edges)
   const [selectedBotId, setSelectedBotId] = useState<string | null>(null)
   const [selectedEdgeId, setSelectedEdgeId] = useState<string | null>(null)
+  const [extractOpen, setExtractOpen] = useState(false)
 
   useEffect(() => {
     const workflow = graphToWorkflow(workflowName, nodes, edges)
@@ -153,9 +155,13 @@ export default function App() {
     downloadWorkflow(graphToWorkflow(workflowName, nodes, edges))
   }, [workflowName, nodes, edges])
 
-  const handleExtractSkill = useCallback(() => {
-    downloadSkill(graphToWorkflow(workflowName, nodes, edges))
-  }, [workflowName, nodes, edges])
+  const handleExtract = useCallback(
+    async (formats: SkillFormat[]) => {
+      await downloadSkillFormats(graphToWorkflow(workflowName, nodes, edges), formats)
+      setExtractOpen(false)
+    },
+    [workflowName, nodes, edges],
+  )
 
   const handleImport = useCallback(async (file: File) => {
     try {
@@ -184,12 +190,15 @@ export default function App() {
 
   return (
     <div className="app">
+      <div className="app__atmosphere" aria-hidden />
       <Toolbar
         workflowName={workflowName}
+        botCount={nodes.length}
+        linkCount={edges.length}
         onNameChange={setWorkflowName}
         onAddBot={handleAddBot}
         onExport={handleExport}
-        onExtractSkill={handleExtractSkill}
+        onExtractSkill={() => setExtractOpen(true)}
         onImport={handleImport}
         onClear={handleClear}
       />
@@ -211,6 +220,12 @@ export default function App() {
           onDeleteEdge={handleDeleteEdge}
         />
       </div>
+      <ExtractSkillModal
+        open={extractOpen}
+        workflowName={workflowName}
+        onClose={() => setExtractOpen(false)}
+        onExtract={handleExtract}
+      />
     </div>
   )
 }

@@ -22,8 +22,8 @@ export function Inspector({
     return (
       <aside className="inspector inspector--empty">
         <p className="inspector__hint">
-          Select a bot to define its function and routine, or select a link to set next, loop, or
-          shared arrows.
+          Select a bot to define its function and routine, or a link for next / loop / shared
+          arrows. When ready, use <strong>Extract skill</strong> for MD, JSON, TXT, or a full pack.
         </p>
       </aside>
     )

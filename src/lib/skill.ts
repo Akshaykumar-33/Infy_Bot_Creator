@@ -1,5 +1,13 @@
 import type { Workflow, WorkflowBot, WorkflowLink } from '../types'
 
+export type SkillFormat = 'md' | 'json' | 'txt' | 'pack'
+
+export type SkillArtifact = {
+  filename: string
+  mime: string
+  content: string
+}
+
 function slugify(name: string): string {
   return (
     name
@@ -84,10 +92,14 @@ ${describeOutgoing(workflow, bot.id)}`
     .join('\n\n')
 }
 
-function executionGuide(workflow: Workflow): string {
-  const starts = workflow.bots.filter(
+function startBots(workflow: Workflow): WorkflowBot[] {
+  return workflow.bots.filter(
     (bot) => !workflow.links.some((l) => l.target === bot.id && l.kind === 'next'),
   )
+}
+
+function executionGuide(workflow: Workflow): string {
+  const starts = startBots(workflow)
   const startNames =
     starts.length > 0
       ? starts.map((b) => `**${b.name}**`).join(', ')
@@ -101,17 +113,22 @@ function executionGuide(workflow: Workflow): string {
 6. Stop when a bot has no outgoing **next** link and no further loop/shared action is required.`
 }
 
-/** Build a Cursor-style SKILL.md from the designed bot workflow. */
-export function workflowToSkillMarkdown(workflow: Workflow): string {
-  const skillName = slugify(workflow.name)
+function skillMeta(workflow: Workflow) {
+  const name = slugify(workflow.name)
   const description =
     `Run the "${workflow.name}" bot workflow: ${workflow.bots.length} bot(s) with functions, routines, next/loop/shared links.`.slice(
       0,
       200,
     )
+  return { name, description }
+}
+
+/** Build a Cursor-style SKILL.md from the designed bot workflow. */
+export function workflowToSkillMarkdown(workflow: Workflow): string {
+  const { name, description } = skillMeta(workflow)
 
   return `---
-name: ${skillName}
+name: ${name}
 description: ${description}
 ---
 
@@ -148,15 +165,179 @@ ${JSON.stringify(workflow, null, 2)}
 `
 }
 
-export function downloadSkill(workflow: Workflow): void {
-  const markdown = workflowToSkillMarkdown(workflow)
-  const blob = new Blob([markdown], { type: 'text/markdown;charset=utf-8' })
+/** Structured skill JSON for agents / tooling. */
+export function workflowToSkillJson(workflow: Workflow): string {
+  const { name, description } = skillMeta(workflow)
+  const starts = startBots(workflow)
+
+  const payload = {
+    skill: {
+      name,
+      title: workflow.name || 'Bot Workflow',
+      description,
+      version: '1.0.0',
+      source: 'BOT WORKFLOW DESIGNER',
+      formats: ['SKILL.md', 'skill.json', 'skill.txt'],
+    },
+    topology: {
+      bots: workflow.bots.length,
+      links: workflow.links.length,
+      next: workflow.links.filter((l) => l.kind === 'next').length,
+      loop: workflow.links.filter((l) => l.kind === 'loop').length,
+      shared: workflow.links.filter((l) => l.kind === 'shared').length,
+      starts: starts.map((b) => ({ id: b.id, name: b.name })),
+    },
+    bots: workflow.bots.map((bot) => ({
+      id: bot.id,
+      name: bot.name,
+      function: bot.function,
+      routine: bot.routine,
+      position: bot.position,
+      incoming: workflow.links
+        .filter((l) => l.target === bot.id)
+        .map((l) => ({
+          id: l.id,
+          from: l.source,
+          kind: l.kind,
+          label: l.label,
+        })),
+      outgoing: workflow.links
+        .filter((l) => l.source === bot.id)
+        .map((l) => ({
+          id: l.id,
+          to: l.target,
+          kind: l.kind,
+          label: l.label,
+        })),
+    })),
+    links: workflow.links,
+    workflow,
+    markdown: workflowToSkillMarkdown(workflow),
+  }
+
+  return JSON.stringify(payload, null, 2)
+}
+
+/** Plain-text skill brief for quick paste into prompts. */
+export function workflowToSkillText(workflow: Workflow): string {
+  const { name, description } = skillMeta(workflow)
+  const lines: string[] = [
+    `SKILL: ${name}`,
+    description,
+    '',
+    `Workflow: ${workflow.name}`,
+    executionGuide(workflow).replace(/\*\*/g, ''),
+    '',
+    'BOTS',
+  ]
+
+  for (const [index, bot] of workflow.bots.entries()) {
+    lines.push(`${index + 1}. ${bot.name}`)
+    lines.push(`   Function: ${bot.function || '(undefined)'}`)
+    if (bot.routine.length) {
+      lines.push(`   Routine: ${bot.routine.map((s, i) => `${i + 1}) ${s}`).join('; ')}`)
+    } else {
+      lines.push('   Routine: (none)')
+    }
+    const outs = workflow.links.filter((l) => l.source === bot.id)
+    if (outs.length) {
+      lines.push(
+        `   Links: ${outs
+          .map((l) => {
+            const t = botById(workflow, l.target)?.name ?? l.target
+            return `${l.kind}->${t}${l.label ? `(${l.label})` : ''}`
+          })
+          .join(', ')}`,
+      )
+    }
+    lines.push('')
+  }
+
+  return lines.join('\n').trim() + '\n'
+}
+
+function downloadBlob(filename: string, content: string, mime: string): void {
+  const blob = new Blob([content], { type: mime })
   const url = URL.createObjectURL(blob)
   const a = document.createElement('a')
   a.href = url
-  a.download = 'SKILL.md'
+  a.download = filename
   a.click()
   URL.revokeObjectURL(url)
+}
+
+export function buildSkillArtifacts(
+  workflow: Workflow,
+  formats: SkillFormat[],
+): SkillArtifact[] {
+  const base = slugify(workflow.name)
+  const selected = new Set(formats)
+  const artifacts: SkillArtifact[] = []
+
+  if (selected.has('md') || selected.has('pack')) {
+    artifacts.push({
+      filename: 'SKILL.md',
+      mime: 'text/markdown;charset=utf-8',
+      content: workflowToSkillMarkdown(workflow),
+    })
+  }
+
+  if (selected.has('json') || selected.has('pack')) {
+    artifacts.push({
+      filename: `${base}.skill.json`,
+      mime: 'application/json;charset=utf-8',
+      content: workflowToSkillJson(workflow),
+    })
+  }
+
+  if (selected.has('txt') || selected.has('pack')) {
+    artifacts.push({
+      filename: `${base}.skill.txt`,
+      mime: 'text/plain;charset=utf-8',
+      content: workflowToSkillText(workflow),
+    })
+  }
+
+  if (selected.has('pack')) {
+    artifacts.push({
+      filename: `${base}.skill-pack.json`,
+      mime: 'application/json;charset=utf-8',
+      content: JSON.stringify(
+        {
+          name: base,
+          title: workflow.name,
+          extractedAt: new Date().toISOString(),
+          files: artifacts.map((a) => ({
+            filename: a.filename,
+            content: a.content,
+          })),
+          workflow,
+        },
+        null,
+        2,
+      ),
+    })
+  }
+
+  return artifacts
+}
+
+export async function downloadSkillFormats(
+  workflow: Workflow,
+  formats: SkillFormat[],
+): Promise<void> {
+  const artifacts = buildSkillArtifacts(workflow, formats)
+  for (const [index, artifact] of artifacts.entries()) {
+    downloadBlob(artifact.filename, artifact.content, artifact.mime)
+    if (index < artifacts.length - 1) {
+      await new Promise((resolve) => setTimeout(resolve, 180))
+    }
+  }
+}
+
+/** @deprecated Prefer downloadSkillFormats */
+export function downloadSkill(workflow: Workflow): void {
+  void downloadSkillFormats(workflow, ['md'])
 }
 
 export { slugify }

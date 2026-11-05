@@ -1,5 +1,7 @@
 type ToolbarProps = {
   workflowName: string
+  botCount: number
+  linkCount: number
   onNameChange: (name: string) => void
   onAddBot: () => void
   onExport: () => void
@@ -10,6 +12,8 @@ type ToolbarProps = {
 
 export function Toolbar({
   workflowName,
+  botCount,
+  linkCount,
   onNameChange,
   onAddBot,
   onExport,
@@ -20,8 +24,15 @@ export function Toolbar({
   return (
     <header className="toolbar">
       <div className="toolbar__brand">
-        <span className="toolbar__mark" aria-hidden />
-        <h1 className="toolbar__title">BOT WORKFLOW DESIGNER</h1>
+        <span className="toolbar__mark" aria-hidden>
+          <span />
+          <span />
+          <span />
+        </span>
+        <div className="toolbar__titles">
+          <h1 className="toolbar__title">BOT WORKFLOW DESIGNER</h1>
+          <p className="toolbar__tagline">Compose bots · wire routines · extract skills</p>
+        </div>
       </div>
 
       <label className="toolbar__name">
@@ -33,6 +44,15 @@ export function Toolbar({
           spellCheck={false}
         />
       </label>
+
+      <div className="toolbar__stats" aria-label="Workflow stats">
+        <span>
+          <strong>{botCount}</strong> bots
+        </span>
+        <span>
+          <strong>{linkCount}</strong> links
+        </span>
+      </div>
 
       <div className="toolbar__actions">
         <button type="button" className="btn btn--primary" onClick={onAddBot}>
